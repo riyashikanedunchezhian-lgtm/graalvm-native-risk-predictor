@@ -14,6 +14,7 @@ gradlePlugin {
         create("nativeRisk") {
             id = "com.example.native-risk"
             implementationClass = "com.example.NativeRiskPlugin"
+            version = "1.0.0"
         }
     }
 }
