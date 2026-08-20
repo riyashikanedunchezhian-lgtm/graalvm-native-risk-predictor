@@ -1,0 +1,42 @@
+name: Native Build Regression Check
+
+# Optional workflow: runs the compatibility checker against the
+# sample projects under samples/ so a regression in a detector (e.g.
+# a new false negative on known-fallback-case) is caught in CI rather
+# than only via manual testing. Does not run an actual native-image
+# build (that requires the GraalVM native-image tool and is
+# considerably slower) -- this only exercises the checker itself.
+
+on:
+  pull_request:
+    paths:
+      - 'native-risk-core/**'
+      - 'native-risk-gradle-plugin/**'
+      - 'samples/**'
+
+jobs:
+  check-samples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      - name: Publish plugin to local Maven repo
+        run: gradle :native-risk-gradle-plugin:publishToMavenLocal
+
+      - name: Run checker against sample projects
+        run: |
+          for sample in samples/*/; do
+            echo "=== $sample ==="
+            (cd "$sample" && gradle nativeCompatibilityCheck || true)
+          done

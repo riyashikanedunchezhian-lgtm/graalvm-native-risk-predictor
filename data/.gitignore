@@ -1,0 +1,6 @@
+# Labeled datasets are not checked into this repository by default --
+# see labeling-schema.md. Generate locally via scripts/mine-ci-logs.py,
+# or point to an external data store.
+*.jsonl
+*.csv
+/raw/
