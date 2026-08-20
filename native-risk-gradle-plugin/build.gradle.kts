@@ -12,12 +12,13 @@ dependencies {
 gradlePlugin {
     plugins {
         create("nativeRisk") {
-            id = "com.example.native-risk"
-            implementationClass = "com.example.NativeRiskPlugin"
+            id = "io.nativerisk.native-compatibility"
+            implementationClass = "io.nativerisk.gradle.NativeCompatibilityPlugin"
             version = project.version.toString()
         }
     }
 }
+
 sourceSets {
     create("functionalTest") {
         java.srcDir("src/functionalTest/java")
