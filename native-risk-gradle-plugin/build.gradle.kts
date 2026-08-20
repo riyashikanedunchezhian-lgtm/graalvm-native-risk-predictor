@@ -43,5 +43,5 @@ tasks.check {
     dependsOn(functionalTest)
 }
 tasks.named("functionalTest") {
-    dependsOn publishToMavenLocal
+    dependsOn("jar", "publishToMavenLocal")
 }
