@@ -9,17 +9,15 @@ dependencies {
     testImplementation(gradleTestKit())
 }
 
+
 gradlePlugin {
     plugins {
-        create("nativeCompatibilityPlugin") {
-            id = "io.nativerisk.native-compatibility"
-            implementationClass = "io.nativerisk.gradle.NativeCompatibilityPlugin"
-            displayName = "GraalVM Native Image Compatibility Checker"
-            description = "Analyzes compiled bytecode and dependencies for GraalVM Native Image compatibility risk before you run native-image."
+        nativeRisk {
+            id = 'com.example.native-risk' // Use your actual plugin ID
+            implementationClass = 'com.example.NativeRiskPlugin'
         }
     }
 }
-
 sourceSets {
     create("functionalTest") {
         java.srcDir("src/functionalTest/java")
