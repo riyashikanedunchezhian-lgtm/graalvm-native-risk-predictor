@@ -1,10 +1,12 @@
 plugins {
     id("java-gradle-plugin")
+    id("maven-publish")
 }
 
 dependencies {
     implementation(project(":native-risk-core"))
     testImplementation(libs.junit.jupiter)
+    testImplementation(gradleTestKit())
 }
 
 gradlePlugin {
@@ -32,6 +34,9 @@ val functionalTest = tasks.register<Test>("functionalTest") {
     testClassesDirs = sourceSets["functionalTest"].output.classesDirs
     classpath = sourceSets["functionalTest"].runtimeClasspath
     useJUnitPlatform()
+    
+    // Plugin JAR must be built before running functional tests
+    dependsOn("jar", "publishToMavenLocal")
 }
 
 tasks.check {
