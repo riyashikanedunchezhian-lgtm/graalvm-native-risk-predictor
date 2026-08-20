@@ -42,6 +42,6 @@ val functionalTest = tasks.register<Test>("functionalTest") {
 tasks.check {
     dependsOn(functionalTest)
 }
-tasks.named('functionalTest') {
+tasks.named("functionalTest") {
     dependsOn publishToMavenLocal
 }
