@@ -9,15 +9,15 @@ dependencies {
     testImplementation(gradleTestKit())
 }
 
-
 gradlePlugin {
     plugins {
         nativeRisk {
-            id = 'com.example.native-risk' // Use your actual plugin ID
-            implementationClass = 'com.example.NativeRiskPlugin'
+            id = "com.example.native-risk"
+            implementationClass = "com.example.NativeRiskPlugin"
         }
     }
 }
+
 sourceSets {
     create("functionalTest") {
         java.srcDir("src/functionalTest/java")
@@ -33,13 +33,13 @@ val functionalTest = tasks.register<Test>("functionalTest") {
     classpath = sourceSets["functionalTest"].runtimeClasspath
     useJUnitPlatform()
     
-    // Plugin JAR must be built before running functional tests
     dependsOn("jar", "publishToMavenLocal")
 }
 
 tasks.check {
     dependsOn(functionalTest)
 }
+
 tasks.named("functionalTest") {
     dependsOn("jar", "publishToMavenLocal")
 }
