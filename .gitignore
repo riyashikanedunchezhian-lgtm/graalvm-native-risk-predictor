@@ -1,0 +1,10 @@
+.gradle/
+build/
+out/
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Once you run `gradle wrapper` per CONTRIBUTING.md, commit the wrapper
+# files (gradlew, gradlew.bat, gradle/wrapper/) -- don't ignore them.
