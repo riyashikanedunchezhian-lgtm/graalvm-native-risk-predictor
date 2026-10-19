@@ -26,11 +26,10 @@ before you even attempt the native build.
 ## Quickstart
 
 ```bash
-gradle nativeCompatibilityCheck
+./gradlew nativeCompatibilityCheck
 ```
 
-(No Gradle wrapper is checked into this repo yet — see CONTRIBUTING.md
-to generate and commit one, after which this becomes `./gradlew ...`.)
+(This repo includes a Gradle wrapper — run `./gradlew` directly.)
 
 This produces:
 
@@ -54,6 +53,10 @@ Recommendations:
   - Verify the resource path is available at build time, or pass --allow-incomplete-classpath
 ```
 
+## Scoring Mechanism (Updated)
+
+The heuristic engine now uses **per-category caps** instead of flat per-finding penalties to prevent any single issue type from dominating the score. This provides a more balanced assessment of compatibility risks across different categories (reflection, proxies, JNI, etc.).
+
 ## Project layout
 
 | Module | Purpose |
@@ -63,7 +66,7 @@ Recommendations:
 | `native-risk-ml` | Phase 2, optional and currently unbuilt. Random Forest scoring model, gated on a labeled dataset existing. See [native-risk-ml/README.md](native-risk-ml/README.md). |
 | `benchmark` | Precision/recall evaluation harness comparing the heuristic engine (and later, the ML model) against real native-image build outcomes on a held-out project set. |
 | `data` | Dataset labeling schema and mining scripts — not the dataset itself (see [data/labeling-schema.md](data/labeling-schema.md)). |
-| `samples` | Small example Java projects used for manual testing and Gradle functional tests. |
+| `samples` | Small example Java projects used for manual testing and Gradle functional tests. Includes:<br>• `clean-spring-boot-app` - A minimal Spring Boot application<br>• `known-fallback-case` - Demonstrates known fallback scenarios<br>• `reflection-heavy-app` - Showcases extensive reflection usage |
 | `docs` | Design docs: architecture, evaluation plan, data sourcing plan, known limitations. |
 
 ## Status
@@ -74,7 +77,7 @@ Phase 2 (ML scoring) — not started; blocked on dataset collection (see [docs/d
 ## Requirements
 
 - Java 21+
-- Gradle 8.7+ (wrapper included once you run `gradle wrapper` locally — see CONTRIBUTING.md)
+- Gradle 8.7+ (wrapper included)
 
 ## License
 
