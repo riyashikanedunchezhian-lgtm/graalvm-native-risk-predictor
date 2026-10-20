@@ -44,6 +44,8 @@ public final class RecommendationEngine {
             case DEPENDENCY_KNOWN_RISKY_LIBRARY -> "Check the library's entry in the GraalVM "
                     + "reachability-metadata repository (or its own native-image support docs) for "
                     + "required configuration.";
+                case UNSAFE -> "Avoid using sun.misc.Unsafe; refactor to java.lang.invoke.VarHandle or safer APIs.";
+                case SERVICE_LOADER -> "Ensure META-INF/services files are present and listed in the GraalVM service-loader config.";
         };
     }
 }

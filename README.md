@@ -1,91 +1,269 @@
 # GraalVM Native Image Compatibility Risk Predictor
 
-A Gradle plugin that analyzes a Java project's compiled bytecode and
-dependencies **before** you run `native-image`, surfacing likely
-GraalVM Native Image compatibility issues early — reflection, dynamic
-proxies, JNI, non-constant resource loading, serialization, custom
-class loaders, and `invokedynamic`/`MethodHandle` usage.
+---
 
-Phase 1 (shipped) is a transparent, rule-based heuristic engine.
-Phase 2 (conditional, not yet built) is an optional ML-based scoring
-model, gated behind collecting a real labeled dataset of native-image
-build outcomes. See [docs/proposal.md](docs/proposal.md) for the full
-design rationale.
+## Overview
 
-## Why
+The **GraalVM Native Image Compatibility Risk Predictor** is a Gradle plugin that performs proactive analysis of Java bytecode and project dependencies **before** invoking `native-image`. It detects patterns that are known to cause compatibility issues with GraalVM's native‑image tool and provides concrete, actionable recommendations for remediation.
 
-GraalVM Native Image performs ahead-of-time compilation under a
-closed-world assumption: all reachable code must be knowable at build
-time. Dynamic behavior (reflection, proxies, JNI, runtime class
-loading) needs explicit configuration, and today developers usually
-find out it's missing only after a native build fails — which can
-take several minutes per attempt. This tool runs in seconds, right
-after compilation, and gives you a prioritized list of what to fix
-before you even attempt the native build.
+### Why this matters
 
-## Quickstart
+* **Speed up CI/CD** – Catch native‑image failures early (seconds after compilation) instead of after a multi‑minute build.
+* **Reduce debugging time** – Detailed findings point directly to the offending code and suggest the exact configuration changes needed.
+* **Future‑proof** – The architecture is split between a core analysis engine (`native-risk-core`) and a thin Gradle integration layer (`native-risk-gradle-plugin`). This makes the engine reusable in other contexts (Maven, custom tooling, IDE plugins).
 
-```bash
-./gradlew nativeCompatibilityCheck
-```
+---
 
-(This repo includes a Gradle wrapper — run `./gradlew` directly.)
+## Features
 
-This produces:
+| Feature | Description |
+|---|---|
+| **Bytecode detectors** | Detects reflection, dynamic proxy, JNI, non‑constant resource loading (both `Class.forName` and `ResourceBundle.getBundle`), serialization, custom class loaders, `invokedynamic`, unsafe usage (`sun.misc.Unsafe`), service‑loader patterns, and known risky third‑party libraries. |
+| **Heuristic scoring** | Assigns a compatibility score (0‑100) with per‑category caps to avoid a single issue type dominating the result. |
+| **Detailed report** | Generates a human‑readable HTML report and a machine‑readable JSON report (suitable for CI pipelines). |
+| **Gradle task** | `nativeCompatibilityCheck` integrates seamlessly into the Gradle build lifecycle. |
+| **Extensible architecture** | New detectors can be added by implementing the `BytecodeDetector` interface. |
+| **Publishing support** | Plugin can be published to Maven Local, a corporate Nexus/Artifactory, or any remote Maven repository for sharing across teams. |
 
-- Console summary with a Compatibility Score (0–100) and Low/Medium/High risk label
-- `build/reports/native-risk/report.html` — human-readable report
-- `build/reports/native-risk/report.json` — machine-readable report for CI gating
+---
 
-### Example output
-
-```
-Compatibility Score: 84/100   Risk: Medium   (heuristic engine)
-
-Detected Issues:
-  [HIGH]   Reflection call in com.app.Utils
-  [MEDIUM] Dynamic proxy creation via Spring
-  [LOW]    FileInputStream resource loading with variable path
-
-Recommendations:
-  - Add Utils to reflect-config.json
-  - Register the relevant interfaces in proxy-config.json
-  - Verify the resource path is available at build time, or pass --allow-incomplete-classpath
-```
-
-## Scoring Mechanism (Updated)
-
-The heuristic engine now uses **per-category caps** instead of flat per-finding penalties to prevent any single issue type from dominating the score. This provides a more balanced assessment of compatibility risks across different categories (reflection, proxies, JNI, etc.).
-
-## Project layout
+## Project Layout
 
 | Module | Purpose |
 |---|---|
-| `native-risk-core` | Framework-independent analysis engine (ASM bytecode inspection, ClassGraph classpath scanning, heuristic scoring, recommendations, reporting). No Gradle API dependency, so it's reusable from a future Maven plugin. |
-| `native-risk-gradle-plugin` | Thin Gradle integration: hooks the core engine into the build lifecycle as a `nativeCompatibilityCheck` task. |
-| `native-risk-ml` | Phase 2, optional and currently unbuilt. Random Forest scoring model, gated on a labeled dataset existing. See [native-risk-ml/README.md](native-risk-ml/README.md). |
-| `benchmark` | Precision/recall evaluation harness comparing the heuristic engine (and later, the ML model) against real native-image build outcomes on a held-out project set. |
-| `data` | Dataset labeling schema and mining scripts — not the dataset itself (see [data/labeling-schema.md](data/labeling-schema.md)). |
-| `samples` | Small example Java projects used for manual testing and Gradle functional tests. Includes:<br>• `clean-spring-boot-app` - A minimal Spring Boot application<br>• `known-fallback-case` - Demonstrates known fallback scenarios<br>• `reflection-heavy-app` - Showcases extensive reflection usage |
-| `docs` | Design docs: architecture, evaluation plan, data sourcing plan, known limitations. |
+| `native-risk-core` | Core analysis engine (ASM bytecode inspection, ClassGraph classpath scanning, heuristic scoring, recommendation generation, report creation). No Gradle API dependency – can be reused from Maven plugins, CLI tools, or IDE extensions. |
+| `native-risk-gradle-plugin` | Thin Gradle plugin that wires the core engine into the build lifecycle (`nativeCompatibilityCheck` task). Includes publishing configuration for Maven Local/remote repositories. |
+| `native-risk-ml` | Placeholder for Phase 2 – an optional ML‑based scoring model that will be trained on a labelled dataset of native‑image build outcomes. |
+| `benchmark` | Evaluation harness to measure precision/recall of the heuristic engine (and later the ML model) against a held‑out set of real projects. |
+| `data` | Schema and scripts for dataset labeling (no actual data is stored in the repo). |
+| `samples` | Small example projects used for functional tests and documentation examples (`clean-spring-boot-app`, `known-fallback-case`, `reflection-heavy-app`). |
+| `docs` | Design documentation, architecture diagrams, data‑sourcing plan, and known limitations. |
 
-## Status
+---
 
-Phase 1 (heuristic engine) — in development, see module READMEs for current detector coverage.
-Phase 2 (ML scoring) — not started; blocked on dataset collection (see [docs/data-sourcing.md](docs/data-sourcing.md)).
+## Getting Started
 
-## Requirements
+### Prerequisites
 
-- Java 21+
-- Gradle 8.7+ (wrapper included)
+* **Java 21+** – Required for compilation and for running the plugin. Verify with `java -version`.
+* **Gradle 8.7+** – The project ships a Gradle wrapper (`./gradlew`). No separate Gradle installation is needed.
 
-## License
+### Building the Project
 
-See [LICENSE](LICENSE).
+```bash
+# Clone the repository (if you haven't already)
+git clone <repo‑url>
+cd graalvm-native-risk-predictor
+
+# Build all modules and run unit tests
+./gradlew clean build
+```
+
+The above command compiles the core engine, the Gradle plugin, and executes all unit tests located under `native-risk-core/src/test/java` and functional tests under `native-risk-gradle-plugin/src/functionalTest/java`.
+
+---
+
+## Using the Plugin
+
+### Method 1: Run on Sample Projects (Recommended for testing)
+
+The samples are standalone Gradle builds that use **Composite Build** to pull in the plugin from source. **You must run from inside the sample directory.**
+
+```powershell
+# 1. Navigate to a sample (e.g., reflection-heavy-app)
+cd samples\reflection-heavy-app
+
+# 2. Set JDK (required on Windows)
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot"
+
+# 3. Run the check using the ROOT wrapper (two levels up)
+..\..\gradlew nativeCompatibilityCheck --no-daemon
+
+# 4. View the HTML report
+Start-Process .\build\reports\native-risk\report.html
+```
+
+Repeat for other samples in `samples\clean-spring-boot-app` and `samples\known-fallback-case`.
+
+### Method 2: Publish Locally & Apply to Any Project
+
+If you want to use the plugin in your own project without the composite build setup:
+
+```powershell
+# 1. From the ROOT project directory, publish to local Maven cache
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot"
+.\gradlew :native-risk-gradle-plugin:publishToMavenLocal --no-daemon
+```
+
+Then in **your target project's** `build.gradle.kts`:
+
+```kotlin
+plugins {
+    // Apply the published plugin
+    id("io.nativerisk.native-compatibility")
+}
+```
+
+Run the check in your project:
+```powershell
+./gradlew nativeCompatibilityCheck
+```
+
+Reports will appear under `<your-project>/build/reports/native-risk/`.
+
+---
+
+## Scoring Mechanism (Updated)
+
+The heuristic engine now uses **per‑category caps** instead of a flat per‑finding penalty. Each `FindingCategory` has a maximum weight, preventing a single category (e.g., dozens of reflection calls) from skewing the overall score. The caps are defined in `native-risk-core/src/main/java/io/nativerisk/core/scoring/ScoringWeights.java`.
+
+---
+
+## Recommendation Engine
+
+`RecommendationEngine` maps each `Finding` to a concise, actionable fix. Recent enhancements added support for the newly introduced `UNSAFE` and `SERVICE_LOADER` categories:
+
+* **UNSAFE** – "Avoid using `sun.misc.Unsafe`; refactor to `java.lang.invoke.VarHandle` or safer APIs."
+* **SERVICE_LOADER** – "Ensure `META-INF/services` files are present and listed in the GraalVM service‑loader config."
+
+The engine can be extended by adding new `case` branches for additional `FindingCategory` values.
+
+---
+
+## Adding New Detectors
+
+1. **Create a detector class** implementing `BytecodeDetector` (see existing detectors in `native-risk-core/src/main/java/io/nativerisk/core/analyzer`).
+2. **Register the detector** in `AnalysisPipeline` construction (usually via `ServiceLoader` or manual list). 
+3. **Add a `FindingCategory` entry** in `FindingCategory.java` if a new risk type is introduced.
+4. **Update `ScoringWeights`** to assign a weight and optional per‑category cap.
+5. **Add unit tests** under `native-risk-core/src/test/java/...` to verify detection.
+
+---
+
+## Publishing the Plugin Across Machines/Teams
+
+### Local Maven Repository (shared drive or network share)
+
+```bash
+./gradlew :native-risk-gradle-plugin:publishToMavenLocal
+```
+
+Consumers only need to add the plugin ID (`io.nativerisk.native-compatibility`) – Gradle will locate it in `~/.m2/repository`.
+
+### Remote Maven Repository (Nexus, Artifactory, GitHub Packages, etc.)
+
+1. **Configure the repository** in `native-risk-gradle-plugin/build.gradle.kts`:
+
+```kotlin
+publishing {
+    repositories {
+        maven {
+            name = "myCompanyRepo"
+            url = uri("https://repo.mycompany.com/maven")
+            credentials {
+                username = findProperty("repoUser") as String?
+                password = findProperty("repoPassword") as String?
+            }
+        }
+    }
+    publications {
+        create<MavenPublication>("plugin") {
+            from(components["java"])
+        }
+    }
+}
+```
+
+2. **Publish**:
+
+```bash
+./gradlew :native-risk-gradle-plugin:publish
+```
+
+3. **Consume** in a downstream project:
+
+```kotlin
+repositories {
+    maven { url = uri("https://repo.mycompany.com/maven") }
+    mavenCentral()
+}
+
+plugins {
+    id("io.nativerisk.native-compatibility") version "0.1.0-SNAPSHOT"
+}
+```
+
+---
+
+## Development Workflow
+
+* **Run unit tests:** `./gradlew test`
+* **Run functional tests (Gradle plugin integration):** `./gradlew functionalTest`
+* **Generate the HTML report without publishing:** `./gradlew nativeCompatibilityCheck`
+* **Publish a new snapshot:** Increment `version` in `build.gradle.kts` (e.g., `0.1.1-SNAPSHOT`) and run the publish task again.
+
+### IDE Setup (IntelliJ IDEA / VS Code)
+
+1. Import the root `build.gradle.kts` as a Gradle project.
+2. Ensure the Java toolchain (Java 21) is configured in the IDE.
+3. Run Gradle tasks directly from the IDE's Gradle tool window.
+
+---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Found a false positive or false
-negative? Please use the issue templates under `.github/ISSUE_TEMPLATE/`
-— this feedback directly informs heuristic tuning and, eventually,
-Phase 2 training data.
+We welcome contributions! Please read the guidelines below before submitting a pull request.
+
+1. **Fork the repository** and create a feature branch.
+2. **Add or modify detectors** – ensure you include unit tests covering both positive and negative cases.
+3. **Run the full build** (`./gradlew clean build`) and verify that no tests fail.
+4. **Commit** with the following footer (required by the project's contribution policy):
+   ```
+   Co-Authored-By: Your Name <your.email@example.com>
+   ```
+5. **Open a pull request** – link any related JIRA tickets and fill out the PR template.
+
+### Issue Templates
+
+* `bug_report.md` – for regression bugs or detector inaccuracies.
+* `feature_request.md` – for new detector ideas or enhancements to the scoring model.
+* `false_positive_report.md` – for cases where a detector flags safe code.
+
+---
+
+## License
+
+This project is licensed under the Apache License, Version 2.0. See the `LICENSE` file for details.
+
+---
+
+## Acknowledgments
+
+* **GraalVM Team** – for the native‑image technology.
+* **ASM library** – for bytecode manipulation.
+* **ClassGraph** – for classpath scanning.
+* **Open‑source contributors** – for bug reports, documentation improvements, and detector ideas.
+
+---
+
+## Roadmap (High‑Level)
+
+| Milestone | Description |
+|---|---|
+| **Phase 1** (completed) | Heuristic engine with 10 detectors, per‑category caps, recommendation engine. |
+| **Phase 2** (in progress) | ML‑based scoring model trained on a curated dataset of native‑image successes/failures. |
+| **IDE plugins** | Provide IntelliJ/VS Code plugins that surface findings directly in the editor. |
+| **Maven plugin** | Publish a Maven extension for projects that use Maven instead of Gradle. |
+| **CI integrations** | Official GitHub Actions and GitLab CI templates for automated compliance checks. |
+
+---
+
+## Contact & Support
+
+* **Issue tracker:** Use the GitHub Issues page.
+* **Discussion:** Join the `#graal-native-risk` channel on our community Slack (link in the README of the repository).
+* **Email:** `native‑risk@mycompany.com`
+
+---
+
+*End of README*

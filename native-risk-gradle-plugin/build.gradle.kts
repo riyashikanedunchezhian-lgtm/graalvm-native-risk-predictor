@@ -1,5 +1,6 @@
 plugins {
     id("java-gradle-plugin")
+    id("maven-publish")
 }
 
 dependencies {
@@ -47,4 +48,19 @@ val functionalTest = tasks.register<Test>("functionalTest") {
 
 tasks.check {
     dependsOn(functionalTest)
+}
+
+// Publishing configuration for sharing the plugin via Maven Local (or remote)
+publishing {
+    publications {
+        create<MavenPublication>("plugin") {
+            from(components["java"])
+            // Optionally, you can set the artifactId, group, version if not already set by the plugin
+            // group = "io.nativerisk"
+            // artifactId = "native-risk-gradle-plugin"
+            // version = "0.1.0-SNAPSHOT"
+        }
+    }
+    // To publish to local Maven repository, run: ./gradlew publishToMavenLocal
+    // To publish to a remote repository, configure repositories in the publishing block.
 }
