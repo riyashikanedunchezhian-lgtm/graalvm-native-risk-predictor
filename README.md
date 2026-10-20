@@ -261,8 +261,6 @@ This project is licensed under the Apache License, Version 2.0. See the `LICENSE
 ## Contact & Support
 
 * **Issue tracker:** Use the GitHub Issues page.
-* **Discussion:** Join the `#graal-native-risk` channel on our community Slack (link in the README of the repository).
-* **Email:** `native‑risk@mycompany.com`
 
 ---
 
